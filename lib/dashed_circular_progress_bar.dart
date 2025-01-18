@@ -41,14 +41,8 @@ class DashedCircularProgressBar extends StatelessWidget {
   /// Foreground arc gap size.
   final double foregroundGapSize;
 
-  /// Foreground arc dash size.
-  final double foregroundDashSize;
-
   /// Background arc gap size.
   final double backgroundGapSize;
-
-  /// Background arc dash size.
-  final double backgroundDashSize;
 
   /// Progress bar seek size.
   final double seekSize;
@@ -96,9 +90,7 @@ class DashedCircularProgressBar extends StatelessWidget {
       this.backgroundColor = Colors.white,
       this.corners = StrokeCap.round,
       this.foregroundGapSize = 0,
-      this.foregroundDashSize = 0,
       this.backgroundGapSize = 0,
-      this.backgroundDashSize = 0,
       this.seekSize = 0,
       this.seekColor = Colors.blue,
       this.circleCenterAlignment = Alignment.center,
@@ -126,9 +118,7 @@ class DashedCircularProgressBar extends StatelessWidget {
       this.backgroundColor = Colors.white,
       this.corners = StrokeCap.round,
       this.foregroundGapSize = 0,
-      this.foregroundDashSize = 0,
       this.backgroundGapSize = 0,
-      this.backgroundDashSize = 0,
       this.seekSize = 0,
       this.seekColor = Colors.blue,
       this.circleCenterAlignment = Alignment.center,
@@ -158,9 +148,7 @@ class DashedCircularProgressBar extends StatelessWidget {
       this.backgroundColor = Colors.white,
       this.corners = StrokeCap.round,
       this.foregroundGapSize = 0,
-      this.foregroundDashSize = 0,
       this.backgroundGapSize = 0,
-      this.backgroundDashSize = 0,
       this.seekSize = 0,
       this.seekColor = Colors.blue,
       this.circleCenterAlignment = Alignment.center,
@@ -233,8 +221,6 @@ class DashedCircularProgressBar extends StatelessWidget {
         backgroundColor: backgroundColor,
         foregroundGapSize: foregroundGapSize,
         backgroundGapSize: backgroundGapSize,
-        foregroundDashSize: foregroundDashSize,
-        backgroundDashSize: backgroundDashSize,
         seekSize: seekSize,
         corners: corners,
         seekColor: seekColor,
@@ -289,14 +275,8 @@ class _CircularProgressBarPainter extends CustomPainter {
   /// Foreground arc gap size.
   final double foregroundGapSize;
 
-  /// Foreground arc dash size.
-  final double foregroundDashSize;
-
   /// Background arc gap size.
   final double backgroundGapSize;
-
-  /// Background arc dash size.
-  final double backgroundDashSize;
 
   /// Progress bar seek size.
   final double seekSize;
@@ -319,9 +299,7 @@ class _CircularProgressBarPainter extends CustomPainter {
       required this.backgroundColor,
       required this.corners,
       required this.foregroundGapSize,
-      required this.foregroundDashSize,
       required this.backgroundGapSize,
-      required this.backgroundDashSize,
       required this.seekSize,
       required this.seekColor,
       required this.circleCenterAlignment});
@@ -359,12 +337,14 @@ class _CircularProgressBarPainter extends CustomPainter {
     Offset center = Offset(centerPoint.x, centerPoint.y);
     Rect rect = Rect.fromCircle(center: center, radius: radius);
 
+    double backgroundSweepAngle = _degreeToRadian(sweepAngle);
+    double dashSize = _calculateDashSize(startAngleRadian, backgroundSweepAngle, maxProgress);
+
     // Draw background circle.
-    if (backgroundGapSize > 0 && backgroundDashSize > 0) {
-      // Draw dashed arc.
-      double backgroundSweepAngle = _degreeToRadian(sweepAngle);
+    if (backgroundGapSize > 0) {
+      // Draw dashed arc for background with maxProgress segments
       _drawDashedArc(canvas, rect, startAngleRadian, backgroundSweepAngle,
-          backgroundPaint, backgroundGapSize, backgroundDashSize);
+          backgroundPaint, dashSize, maxProgress);
     } else {
       if (sweepAngle >= 360) {
         // Draw regular circle.
@@ -378,10 +358,10 @@ class _CircularProgressBarPainter extends CustomPainter {
     }
 
     // Draw foreground circle.
-    if (foregroundGapSize > 0 && foregroundDashSize > 0) {
-      // Draw dashed arc.
+    if (foregroundGapSize > 0) {
+      // Draw dashed arc for foreground with progress segments
       _drawDashedArc(canvas, rect, startAngleRadian, sweepAngleRadian,
-          foregroundPaint, foregroundGapSize, foregroundDashSize);
+          foregroundPaint, dashSize, progress);
     } else {
       // Draw regular arc.
       canvas.drawArc(Rect.fromCircle(center: center, radius: radius),
@@ -407,19 +387,47 @@ class _CircularProgressBarPainter extends CustomPainter {
 
   // This method draw multiple dash to create a dashed arc.
   void _drawDashedArc(Canvas canvas, Rect rect, double startAngleRadian,
-      double sweepAngleRadian, Paint paint, double gapSize, double dashSize) {
-    // Calculate gap size between dashes in radian.
-    double gap = _degreeToRadian(gapSize);
-    // Calculate dash size in radian.
-    double dash = _degreeToRadian(dashSize);
-    // Calculate dash counts.
-    int dashCounts = sweepAngleRadian ~/ (dash + gap);
-
-    // Draw dashes.
-    for (int i = 0; i < dashCounts; i++) {
+      double sweepAngleRadian, Paint paint, double dashSize, double maxProgress) {
+    // Calculate total segment size
+    double segmentSweep = sweepAngleRadian / maxProgress;
+    
+    // Draw dashes for each segment
+    for (int i = 0; i < maxProgress.toInt(); i++) {
+      // Calculate start angle for this segment
+      double segmentStartAngle = startAngleRadian + (i * segmentSweep);
+      
+      // Draw dash within the segment
       canvas.drawArc(
-          rect, startAngleRadian + (gap + dash) * i, dash, false, paint);
+        rect, 
+        segmentStartAngle, 
+        dashSize, 
+        false, 
+        paint
+      );
     }
+  }
+
+  double _calculateDashSize(
+      double startAngleRadian, double sweepAngleRadian, double maxProgress) {
+    double segmentSweep = sweepAngleRadian / maxProgress;
+
+    double dashSizeControl = 1;
+
+    if (maxProgress == 2) {
+      dashSizeControl = 0.8;
+    } else if (maxProgress > 2 && maxProgress <= 7) {
+      dashSizeControl = (1 / log(maxProgress + 2));
+    } else if (maxProgress > 7 && maxProgress <= 10) {
+      dashSizeControl = (1 / log(maxProgress + 4));
+    } else if (maxProgress > 10) {
+      dashSizeControl = 0.2;
+    }
+
+    // Calculate dash size dynamically
+    // Larger maxProgress results in smaller dash size
+    // Uses a logarithmic approach to reduce dash size
+    double dashSize = segmentSweep * dashSizeControl;
+    return dashSize;
   }
 
   Point<double> _getCenterPoint(Size size) {
