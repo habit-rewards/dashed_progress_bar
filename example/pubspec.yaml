@@ -1,0 +1,22 @@
+name: example
+description: Dashed circular progress bar shows the progress of a task in a circle, which can be customized in color, style, and shape.
+version: 0.0.6
+homepage: https://github.com/radnive/Flutter_DashedCircularProgressBar
+
+environment:
+  sdk: ">=3.1.2 <4.0.0"
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  dashed_circular_progress_bar:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
