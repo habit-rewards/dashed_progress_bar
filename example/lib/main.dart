@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:dashed_circular_progress_bar/dashed_circular_progress_bar.dart';
+import 'package:dashed_progress_bar/dashed_progress_bar.dart';
 
 void main() {
   runApp(MyApp());

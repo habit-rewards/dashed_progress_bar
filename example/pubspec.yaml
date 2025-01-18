@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  dashed_circular_progress_bar:
+  dashed_progress_bar:
     path: ../
 
 dev_dependencies:
